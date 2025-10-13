@@ -13,11 +13,11 @@ provider "google" {
   # credentials = file("path/to/credentials.json")
   
   # 项目 ID
-  # project = var.project_id
+  project = var.project_id
   
-  # 区域设置
-  # region = var.region
+  # 区域设置（默认区域）
+  region = var.default_region
   
-  # 可用区设置
-  # zone = var.zone
+  # 可用区设置（默认可用区）
+  zone = var.default_zone
 }
