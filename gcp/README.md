@@ -6,8 +6,9 @@
 
 ```
 gcp/
-├── README.md                    # 本文件
-├── revosurge-uat/              # revosurge-uat 项目配置
+├── README.md                   # 本文件
+├── example-project/            # GCP 项目配置
+│   ├── instance_group.tf       # Instance Group 配置
 │   ├── provider.tf             # Provider 配置
 │   ├── variables.tf            # 变量定义
 │   ├── vpc.tf                  # VPC 和防火墙规则
@@ -63,7 +64,7 @@ export GOOGLE_CREDENTIALS="~/.gcp/your-project-key.json"
 ### 1. 选择项目目录
 
 ```bash
-cd gcp/revosurge-uat  # 或其他项目目录
+cd gcp/example-project  # 或其他项目目录
 ```
 
 ### 2. 配置变量
@@ -173,7 +174,7 @@ terraform import google_compute_firewall.RESOURCE_NAME projects/PROJECT_ID/globa
 
 **示例：**
 ```bash
-terraform import google_compute_firewall.revosurge_uat_allow_ssh projects/revosurge-uat/global/firewalls/revosurge-uat-allow-ssh
+terraform import google_compute_firewall.example_project_allow_ssh projects/example-project/global/firewalls/example-project-allow-ssh
 ```
 
 ### 导入 VM 实例
@@ -184,7 +185,7 @@ terraform import google_compute_instance.RESOURCE_NAME["KEY"] projects/PROJECT_I
 
 **示例：**
 ```bash
-terraform import google_compute_instance.vm_instance["europe-west1-0"] projects/revosurge-uat/zones/europe-west1-b/instances/algorithm-ew1-vm1
+terraform import google_compute_instance.vm_instance["europe-west1-0"] projects/example-project/zones/europe-west1-b/instances/algorithm-ew1-vm1
 ```
 
 ### 导入静态 IP 地址
@@ -195,7 +196,7 @@ terraform import google_compute_address.RESOURCE_NAME["KEY"] projects/PROJECT_ID
 
 **示例：**
 ```bash
-terraform import google_compute_address.vm_external_ip["europe-west1-0"] projects/revosurge-uat/regions/europe-west1/addresses/algorithm-ew1-vm1-external-ip
+terraform import google_compute_address.vm_external_ip["europe-west1-0"] projects/example-project/regions/europe-west1/addresses/algorithm-ew1-vm1-external-ip
 ```
 
 ### 导入 VPC 网络
