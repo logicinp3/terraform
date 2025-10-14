@@ -8,7 +8,7 @@ data "google_compute_network" "current_vpc" {
 # 获取所有区域的子网信息
 data "google_compute_subnetwork" "subnets" {
   for_each = var.subnet_configs
-  name     = each.value.subnet_name
+  name     = each.key
   region   = each.value.region
 }
 
@@ -45,9 +45,11 @@ resource "google_compute_firewall" "revosurge_uat_allow_algorithm" {
     protocol = "icmp"
   }
 
+  priority = "65534"
+
   # 允许算法子网的内部通信
   source_ranges = [
-    for subnet in data.google_compute_subnetwork.subnets : subnet.ip_cidr_range
+    for subnet_name, subnet_config in var.subnet_configs : subnet_config.primary_ipv4_range
   ]
   
   target_tags = ["algorithm"]

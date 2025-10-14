@@ -12,35 +12,38 @@ data "google_compute_default_service_account" "default" {
 
 # 为每个实例创建静态外部 IP 地址
 resource "google_compute_address" "vm_external_ip" {
-  for_each = {
-    for region, config in var.vm_instances : region => {
+  for_each = merge([
+    for region, config in var.vm_instances : {
       for idx, instance in config.instances : "${region}-${idx}" => {
         name   = instance.name
-        region = var.subnet_configs[region].region
+        region = var.subnet_configs[instance.subnetwork].region
       }
     }
-  }
+  ]...)
+  
   name   = "${each.value.name}-external-ip"
   region = each.value.region
 }
 
 # 为每个实例创建 VM
 resource "google_compute_instance" "vm_instance" {
-  for_each = {
-    for region, config in var.vm_instances : region => {
+  for_each = merge([
+    for region, config in var.vm_instances : {
       for idx, instance in config.instances : "${region}-${idx}" => {
-        name         = instance.name
-        machine_type = instance.machine_type
-        zone         = instance.zone
-        region       = region
-        image_family = instance.image_family
+        name          = instance.name
+        machine_type  = instance.machine_type
+        zone          = instance.zone
+        region        = region
+        image_family  = instance.image_family
         image_project = instance.image_project
-        disk_size    = instance.disk_size
-        disk_type    = instance.disk_type
-        network_tags = instance.network_tags
+        disk_size     = instance.disk_size
+        disk_type     = instance.disk_type
+        network_tags  = instance.network_tags
+        network       = instance.network
+        subnetwork    = instance.subnetwork
       }
     }
-  }
+  ]...)
   name         = each.value.name
   machine_type = each.value.machine_type
   zone         = each.value.zone
@@ -55,8 +58,8 @@ resource "google_compute_instance" "vm_instance" {
   }
 
   network_interface {
-    network    = data.google_compute_network.current_vpc.self_link
-    subnetwork = data.google_compute_subnetwork.subnets[each.value.region].self_link
+    network    = "projects/${var.project_id}/global/networks/${each.value.network}"
+    subnetwork = "projects/${var.project_id}/regions/${each.value.region}/subnetworks/${each.value.subnetwork}"
 
     access_config {
       nat_ip = google_compute_address.vm_external_ip[each.key].address
@@ -121,8 +124,9 @@ output "vm_instance_info" {
       internal_ip  = instance.network_interface[0].network_ip
       external_ip  = instance.network_interface[0].access_config[0].nat_ip
       network_tags = instance.tags
-      region       = split("-", key)[0]
-      subnet_name  = var.subnet_configs[split("-", key)[0]].subnet_name
+      region       = regex("^(.+)-\\d+$", key)[0]
+      network      = split("/", instance.network_interface[0].network)[length(split("/", instance.network_interface[0].network)) - 1]
+      subnetwork   = split("/", instance.network_interface[0].subnetwork)[length(split("/", instance.network_interface[0].subnetwork)) - 1]
       static_ip    = google_compute_address.vm_external_ip[key].address
     }
   }
