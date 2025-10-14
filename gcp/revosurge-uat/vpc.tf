@@ -26,9 +26,26 @@ resource "google_compute_firewall" "revosurge_uat_allow_ssh" {
   target_tags   = ["revosurge-manager", "algorithm"]
 }
 
-# 创建防火墙规则 - 允许算法标签的实例进行内部通信
+# 创建防火墙规则 - 允许算法标签的实例接收外部请求
 resource "google_compute_firewall" "revosurge_uat_allow_algorithm" {
   name    = "revosurge-uat-allow-algorithm"
+  network = data.google_compute_network.current_vpc.self_link
+
+  allow {
+    protocol = "tcp"
+    ports    = ["8080","8090"]
+  }
+
+  priority = "1000"
+
+  source_ranges = ["0.0.0.0/0"]
+  
+  target_tags = ["algorithm"]
+}
+
+# 创建防火墙规则 - 允许 172.0.0.0/16 网段的内部通信
+resource "google_compute_firewall" "revosurge_uat_allow_internal" {
+  name    = "revosurge-uat-allow-internal"
   network = data.google_compute_network.current_vpc.self_link
 
   allow {
@@ -47,10 +64,8 @@ resource "google_compute_firewall" "revosurge_uat_allow_algorithm" {
 
   priority = "65534"
 
-  # 允许算法子网的内部通信
-  source_ranges = [
-    for subnet_name, subnet_config in var.subnet_configs : subnet_config.primary_ipv4_range
-  ]
+  # 允许 172.0.0.0/16 网段的内部通信
+  source_ranges = ["172.0.0.0/16"]
   
-  target_tags = ["algorithm"]
+  description = "Allow all internal communication within 172.0.0.0/16 network"
 }

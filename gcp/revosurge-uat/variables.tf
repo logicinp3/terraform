@@ -54,7 +54,7 @@ variable "subnet_configs" {
   }
 }
 
-# 多 VM 实例配置 
+# 多 VM 实例配置
 variable "vm_instances" {
   description = "Configuration for VM instances in different regions"
   type = map(object({
