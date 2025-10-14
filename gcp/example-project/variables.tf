@@ -2,13 +2,13 @@
 variable "project_id" {
   description = "The ID of the GCP project"
   type        = string
-  default     = "revosurge-uat"
+  default     = "your-project-id"
 }
 
 variable "project_name" {
   description = "The name of the GCP project"
   type        = string
-  default     = "revosurge-uat"
+  default     = "your-project-name"
 }
 
 # 默认区域和可用区
@@ -28,7 +28,24 @@ variable "default_zone" {
 variable "current_vpc_name" {
   description = "The name of the current VPC network"
   type        = string
-  default     = "revosurge-uat"
+  default     = "your-vpc-name"
+}
+
+# 防火墙规则配置
+variable "firewall_rules" {
+  description = "Configuration for firewall rules"
+  type = map(object({
+    name          = string
+    description   = optional(string)
+    priority      = optional(number)
+    source_ranges = list(string)
+    target_tags   = optional(list(string))
+    allow = list(object({
+      protocol = string
+      ports    = optional(list(string))
+    }))
+  }))
+  default = {}
 }
 
 # 多区域子网配置
@@ -83,12 +100,28 @@ variable "vm_instances" {
           disk_size     = 20
           disk_type     = "pd-balanced"
           network_tags  = ["algorithm"]
-          network       = "revosurge-uat"
+          network       = "your-vpc-name"
           subnetwork    = "algorithm-ew1"
         }
       ]
     }
   }
+}
+
+# Instance Group 配置
+variable "instance_groups" {
+  description = "Configuration for instance groups"
+  type = map(object({
+    name        = string
+    description = string
+    zone        = string
+    instances   = list(string)  # VM instance keys in format "region-index"
+    named_ports = list(object({
+      name = string
+      port = number
+    }))
+  }))
+  default = {}
 }
 
 # 网络配置说明
