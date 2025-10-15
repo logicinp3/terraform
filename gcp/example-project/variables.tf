@@ -78,6 +78,7 @@ variable "vm_instances" {
     instances = list(object({
       name          = string
       machine_type  = string
+      region        = string
       zone          = string
       image_family  = string
       image_project = string
@@ -94,7 +95,8 @@ variable "vm_instances" {
         {
           name          = "default-vm"
           machine_type  = "e2-small"
-          zone          = "europe-west1-b"
+          region        = "europe-west2"
+          zone          = "europe-west2-a"
           image_family  = "ubuntu-2204-lts"
           image_project = "ubuntu-os-cloud"
           disk_size     = 20

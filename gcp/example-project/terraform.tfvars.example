@@ -133,11 +133,12 @@ subnet_configs = {
 
 # VM 实例配置 - 支持每个实例完全定制化配置
 vm_instances = {
-  "europe-west2" = {
+  "algorithm-ew2-vm1" = {
     instances = [
       {
         name          = "algorithm-ew2-vm1"
         machine_type  = "custom-8-16384"  # 8 vCPU, 16GB RAM
+        region        = "europe-west2"
         zone          = "europe-west2-b"
         image_family  = "ubuntu-2204-lts"
         image_project = "ubuntu-os-cloud"
@@ -151,13 +152,14 @@ vm_instances = {
   }
 }
 
-# 示例：完整的三个区域配置，每个实例完全定制化
+# 示例：多个 VM 实例配置
 # vm_instances = {
-#   "europe-west1" = {
+#   "algorithm-ew1-vm1" = {
 #     instances = [
 #       {
 #         name          = "algorithm-ew1-vm1"
 #         machine_type  = "custom-8-16384"  # 8 vCPU, 16GB RAM
+#         region        = "europe-west1"
 #         zone          = "europe-west1-a"
 #         image_family  = "ubuntu-2204-lts"
 #         image_project = "ubuntu-os-cloud"
@@ -166,10 +168,15 @@ vm_instances = {
 #         network_tags  = ["algorithm"]
 #         network       = "your-vpc-name"
 #         subnetwork    = "algorithm-ew1"
-#       },
+#       }
+#     ]
+#   }
+#   "algorithm-ew1-vm2" = {
+#     instances = [
 #       {
 #         name          = "algorithm-ew1-vm2"
 #         machine_type  = "custom-8-16384"  # 8 vCPU, 16GB RAM
+#         region        = "europe-west1"
 #         zone          = "europe-west1-b"
 #         image_family  = "ubuntu-2204-lts"
 #         image_project = "ubuntu-os-cloud"
@@ -181,11 +188,12 @@ vm_instances = {
 #       }
 #     ]
 #   }
-#   "us-central1" = {
+#   "algorithm-uc1-vm1" = {
 #     instances = [
 #       {
 #         name          = "algorithm-uc1-vm1"
 #         machine_type  = "custom-8-16384"  # 8 vCPU, 16GB RAM
+#         region        = "us-central1"
 #         zone          = "us-central1-a"
 #         image_family  = "ubuntu-2204-lts"
 #         image_project = "ubuntu-os-cloud"
@@ -197,11 +205,12 @@ vm_instances = {
 #       }
 #     ]
 #   }
-#   "asia-southeast1" = {
+#   "algorithm-as1-vm1" = {
 #     instances = [
 #       {
 #         name          = "algorithm-as1-vm1"
 #         machine_type  = "custom-8-16384"  # 8 vCPU, 16GB RAM
+#         region        = "asia-southeast1"
 #         zone          = "asia-southeast1-a"
 #         image_family  = "ubuntu-2204-lts"
 #         image_project = "ubuntu-os-cloud"
@@ -221,7 +230,7 @@ instance_groups = {
     name        = "algorithm-ew2-a-ig"
     description = "Instance group for algorithm VMs in europe-west2-a"
     zone        = "europe-west2-a"
-    instances   = ["europe-west2-0"]  # VM instance keys
+    instances   = ["algorithm-ew2-vm1"]  # VM instance keys
     named_ports = [
       {
         name = "backend-rtb-adaptor"
@@ -237,11 +246,11 @@ instance_groups = {
 
 # 示例：多个 Instance Group 配置
 # instance_groups = {
-#   "algorithm-ew2-a" = {
-#     name        = "algorithm-ew2-a-ig"
-#     description = "Instance group for algorithm VMs in europe-west2-a"
-#     zone        = "europe-west2-a"
-#     instances   = ["europe-west2-0", "europe-west2-1"]
+#   "algorithm-ew1-group" = {
+#     name        = "algorithm-ew1-ig"
+#     description = "Instance group for algorithm VMs in europe-west1-a"
+#     zone        = "europe-west1-a"
+#     instances   = ["algorithm-ew1-vm1", "algorithm-ew1-vm2"]  # VM instance keys (对应 vm_instances 的 key)
 #     named_ports = [
 #       {
 #         name = "backend-rtb-adaptor"
@@ -253,11 +262,11 @@ instance_groups = {
 #       }
 #     ]
 #   }
-#   "algorithm-uc1-a" = {
-#     name        = "algorithm-uc1-a-ig"
+#   "algorithm-uc1-group" = {
+#     name        = "algorithm-uc1-ig"
 #     description = "Instance group for algorithm VMs in us-central1-a"
 #     zone        = "us-central1-a"
-#     instances   = ["us-central1-0"]
+#     instances   = ["algorithm-uc1-vm1"]  # VM instance keys (对应 vm_instances 的 key)
 #     named_ports = [
 #       {
 #         name = "backend-rtb-adaptor"

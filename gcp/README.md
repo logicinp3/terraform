@@ -92,11 +92,12 @@ subnet_configs = {
 #### vm_instances（VM 实例配置）
 ```hcl
 vm_instances = {
-  "region-key" = {
+  "vm-instance-key" = {  # 使用 VM 名称作为 key
     instances = [
       {
         name          = "vm-name"
         machine_type  = "machine-type"
+        region        = "region-name"  # 必须指定 region
         zone          = "zone-name"
         image_family  = "ubuntu-2204-lts"
         image_project = "ubuntu-os-cloud"
@@ -180,23 +181,25 @@ terraform import google_compute_firewall.example_project_allow_ssh projects/exam
 ### 导入 VM 实例
 
 ```bash
-terraform import google_compute_instance.RESOURCE_NAME["KEY"] projects/PROJECT_ID/zones/ZONE/instances/INSTANCE_NAME
+terraform import google_compute_instance.vm_instance["VM_INSTANCE_KEY"] projects/PROJECT_ID/zones/ZONE/instances/INSTANCE_NAME
 ```
 
 **示例：**
 ```bash
-terraform import google_compute_instance.vm_instance["europe-west1-0"] projects/example-project/zones/europe-west1-b/instances/algorithm-ew1-vm1
+# VM instance key 对应 vm_instances 中的 key（VM 名称）
+terraform import google_compute_instance.vm_instance["algorithm-ew1-vm1"] projects/example-project/zones/europe-west1-b/instances/algorithm-ew1-vm1
 ```
 
 ### 导入静态 IP 地址
 
 ```bash
-terraform import google_compute_address.RESOURCE_NAME["KEY"] projects/PROJECT_ID/regions/REGION/addresses/ADDRESS_NAME
+terraform import google_compute_address.vm_external_ip["VM_INSTANCE_KEY"] projects/PROJECT_ID/regions/REGION/addresses/ADDRESS_NAME
 ```
 
 **示例：**
 ```bash
-terraform import google_compute_address.vm_external_ip["europe-west1-0"] projects/example-project/regions/europe-west1/addresses/algorithm-ew1-vm1-external-ip
+# VM instance key 对应 vm_instances 中的 key（VM 名称）
+terraform import google_compute_address.vm_external_ip["algorithm-ew1-vm1"] projects/example-project/regions/europe-west1/addresses/algorithm-ew1-vm1-external-ip
 ```
 
 ### 导入 VPC 网络
@@ -220,7 +223,8 @@ terraform import google_compute_subnetwork.RESOURCE_NAME["KEY"] projects/PROJECT
 terraform state list
 
 # 查看特定资源详情
-terraform state show google_compute_instance.vm_instance[\"europe-west1-0\"]
+terraform state show 'google_compute_instance.vm_instance["algorithm-ew2-vm1"]'
+terraform state show 'google_compute_address.vm_external_ip["algorithm-ew2-vm1-external-ip"]'
 ```
 
 ### 刷新状态
@@ -247,7 +251,8 @@ terraform destroy -target=google_compute_instance.vm_instance[\"europe-west1-0\"
 
 ```bash
 # 从 Terraform 状态中移除，但不删除 GCP 中的资源
-terraform state rm google_compute_instance.vm_instance[\"europe-west1-0\"]
+terraform state rm google_compute_address.vm_external_ip['algorithm-ew1-vm1']
+terraform state rm google_compute_instance.vm_instance['algorithm-ew1-vm1']
 ```
 
 ## 变量配置详解
@@ -261,6 +266,65 @@ default_region   = "asia-southeast1"        # 默认区域
 default_zone     = "asia-southeast1-a"      # 默认可用区
 current_vpc_name = "your-vpc-name"          # VPC 网络名称
 ```
+
+### VM 实例配置说明
+
+**重要变更：** VM 实例的 key 现在使用 VM 名称而不是 region。
+
+```hcl
+vm_instances = {
+  "algorithm-ew2-vm1" = {  # Key 使用 VM 名称
+    instances = [
+      {
+        name          = "algorithm-ew2-vm1"
+        machine_type  = "custom-8-16384"
+        region        = "europe-west2"     # 必须指定 region
+        zone          = "europe-west2-a"
+        image_family  = "ubuntu-2204-lts"
+        image_project = "ubuntu-os-cloud"
+        disk_size     = 20
+        disk_type     = "pd-balanced"
+        network_tags  = ["algorithm"]
+        network       = "your-vpc-name"
+        subnetwork    = "algorithm-ew2"
+      }
+    ]
+  }
+}
+```
+
+**关键点：**
+- `vm_instances` 的 key 使用 VM 实例名称（如 `"algorithm-ew2-vm1"`）
+- 每个实例配置中必须包含 `region` 字段
+- Instance Group 的 `instances` 列表引用这些 key
+
+### Instance Group 配置说明
+
+```hcl
+instance_groups = {
+  "algorithm-ew2-a" = {  # Instance Group 的标识符
+    name        = "algorithm-ew2-a-ig"
+    description = "Instance group for algorithm VMs"
+    zone        = "europe-west2-a"
+    instances   = ["algorithm-ew2-vm1"]  # 引用 vm_instances 的 key
+    named_ports = [
+      {
+        name = "backend-rtb-adaptor"
+        port = 8080
+      },
+      {
+        name = "revo-ai"
+        port = 8000
+      }
+    ]
+  }
+}
+```
+
+**关键点：**
+- `instances` 列表中的值必须对应 `vm_instances` 中的 key
+- 可以将多个 VM 实例添加到同一个 Instance Group
+- 命名端口用于负载均衡器配置
 
 ### 常用 GCP 区域和可用区
 
@@ -331,7 +395,40 @@ Error: The resource already exists
 **解决方案：**
 使用 `terraform import` 导入现有资源。
 
-#### 4. 权限不足
+#### 4. 实例需要重建（metadata_startup_script 变更）
+
+**错误信息：**
+```
+# google_compute_instance.vm_instance["vm-name"] must be replaced
++/- resource "google_compute_instance" "vm_instance" {
+    + metadata_startup_script = ... # forces replacement
+```
+
+**原因：**
+- 现有实例使用 `metadata["startup-script"]`
+- 新配置使用 `metadata_startup_script`
+- Terraform 认为这是不同的配置方式
+
+**解决方案：**
+
+已在 `vm.tf` 中添加 `lifecycle.ignore_changes` 配置：
+
+```hcl
+lifecycle {
+  prevent_destroy = false
+  ignore_changes = [
+    metadata,
+    metadata_startup_script,
+  ]
+}
+```
+
+这样可以：
+- ✅ 避免因 metadata 变更导致实例重建
+- ✅ 保护已运行的实例不受启动脚本变更影响
+- ✅ 新实例仍会应用启动脚本
+
+#### 5. 权限不足
 
 **错误信息：**
 ```
