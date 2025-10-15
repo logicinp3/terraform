@@ -233,11 +233,11 @@ instance_groups = {
     instances   = ["algorithm-ew2-vm1"]  # VM instance keys
     named_ports = [
       {
-        name = "backend-rtb-adaptor"
+        name = "http" # backend-rtb-adaptor
         port = 8080
       },
       {
-        name = "revo-ai"
+        name = "revo-ai" # revo-ai
         port = 8000
       }
     ]
@@ -316,6 +316,103 @@ lb_backends = {
 #     balancing_mode     = "UTILIZATION"
 #     capacity_scaler    = 1.0
 #     max_utilization    = 0.8
+#   }
+# }
+
+# ========================================
+# GCS Bucket 配置
+# ========================================
+
+gcs_buckets = {
+  "adwave-uat" = {
+    name               = "adwave-uat"
+    location           = "asia-southeast1"  # Region (单可用区)
+    storage_class      = "STANDARD"
+    versioning_enabled = false
+    labels = {
+      environment = "uat"
+      managed_by  = "terraform"
+    }
+    # 可选：生命周期规则
+    lifecycle_rules = []
+  }
+}
+
+# 示例：多个 Bucket 配置
+# gcs_buckets = {
+#   "adwave-uat" = {
+#     name               = "adwave-uat"
+#     location           = "asia-southeast1"
+#     storage_class      = "STANDARD"
+#     versioning_enabled = false
+#     labels = {
+#       environment = "uat"
+#     }
+#   }
+#   "adwave-prod" = {
+#     name               = "adwave-prod"
+#     location           = "us-central1"
+#     storage_class      = "STANDARD"
+#     versioning_enabled = true
+#     labels = {
+#       environment = "production"
+#     }
+#     # 生命周期规则示例
+#     lifecycle_rules = [
+#       {
+#         action = {
+#           type          = "SetStorageClass"
+#           storage_class = "NEARLINE"
+#         }
+#         condition = {
+#           age                   = 30
+#           matches_storage_class = ["STANDARD"]
+#         }
+#       }
+#     ]
+#   }
+# }
+
+# ========================================
+# IAM Service Account 配置
+# ========================================
+
+service_accounts = {
+  "applications-uat" = {
+    account_id       = "applications-uat"
+    display_name     = "applications-uat"
+    description      = "Service account for development applications"
+    roles = [
+      "roles/firebasestorage.serviceAgent"  # Cloud Storage for Firebase Service Agent
+    ]
+    create_key       = true   # 创建 Service Account Key
+    save_key_to_file = true   # 保存 Key 到文件
+  }
+}
+
+# 示例：多个 Service Account 配置
+# service_accounts = {
+#   "applications-dev" = {
+#     account_id       = "applications-dev"
+#     display_name     = "Applications Development Service Account"
+#     description      = "Service account for development applications"
+#     roles = [
+#       "roles/firebasestorage.serviceAgent",
+#       "roles/storage.objectAdmin"
+#     ]
+#     create_key       = true
+#     save_key_to_file = true
+#   }
+#   "applications-prod" = {
+#     account_id       = "applications-prod"
+#     display_name     = "Applications Production Service Account"
+#     description      = "Service account for production applications"
+#     roles = [
+#       "roles/firebasestorage.serviceAgent",
+#       "roles/storage.objectViewer"
+#     ]
+#     create_key       = false  # 不创建 Key
+#     save_key_to_file = false
 #   }
 # }
 

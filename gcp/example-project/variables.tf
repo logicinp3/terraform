@@ -168,5 +168,51 @@ variable "lb_backends" {
   default = {}
 }
 
+# ========================================
+# GCS Bucket 配置
+# ========================================
+
+variable "gcs_buckets" {
+  description = "GCS Buckets configuration"
+  type = map(object({
+    name                = string
+    location            = string           # Region name (e.g., "asia-southeast1")
+    storage_class       = optional(string, "STANDARD")
+    versioning_enabled  = optional(bool, false)
+    labels              = optional(map(string), {})
+    lifecycle_rules     = optional(list(object({
+      action = object({
+        type          = string
+        storage_class = optional(string)
+      })
+      condition = object({
+        age                   = optional(number)
+        created_before        = optional(string)
+        with_state            = optional(string)
+        matches_storage_class = optional(list(string))
+        num_newer_versions    = optional(number)
+      })
+    })), [])
+  }))
+  default = {}
+}
+
+# ========================================
+# IAM Service Account 配置
+# ========================================
+
+variable "service_accounts" {
+  description = "Service Accounts configuration"
+  type = map(object({
+    account_id       = string
+    display_name     = string
+    description      = optional(string, "")
+    roles            = list(string)  # List of IAM roles to assign
+    create_key       = optional(bool, false)  # Whether to create a key
+    save_key_to_file = optional(bool, false)  # Whether to save key to file
+  }))
+  default = {}
+}
+
 # 网络配置说明
 # VM 使用静态外部 IP 地址

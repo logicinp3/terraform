@@ -11,13 +11,15 @@ gcp/
 │   ├── instance_group.tf          # Instance Group 配置
 │   ├── load_balancer.tf           # Load Balancer 配置
 │   ├── provider.tf                # Provider 配置
+│   ├── service_account.tf         # IAM Service Account 配置
+│   ├── storage.tf                 # GCS Bucket 配置
 │   ├── variables.tf               # 变量定义
 │   ├── vpc.tf                     # VPC 和防火墙规则
 │   ├── vm.tf                      # VM 实例配置
 │   ├── nat.tf                     # Cloud NAT 配置
+│   ├── keys/                      # Service Account Keys 目录（gitignored）
 │   ├── terraform.tfvars           # 实际变量值（gitignored）
-│   ├── terraform.tfvars.example   # 变量示例文件
-│   └── LOAD_BALANCER_GUIDE.md     # Load Balancer 配置指南
+│   └── terraform.tfvars.example   # 变量示例文件
 └── [其他项目目录]/                # 其他 GCP 项目
 ```
 
@@ -354,13 +356,94 @@ lb_backends = {
 **关键特性：**
 - ✅ Global 区域访问
 - ✅ External 外部访问
-- ✅ HTTP 协议（端口 80）
+- ✅ HTTP 协议（端口 80 和 8000）
 - ✅ 静态外部 IP
-- ✅ TCP Health Check（端口 8080）
+- ✅ 多端口支持（同一 IP，不同端口）
+- ✅ TCP Health Check（端口 8080 和 8000）
 - ✅ Session Affinity（Client IP）
 - ✅ 支持多个 Backend Instance Groups
 
-**详细配置请参考：** [LOAD_BALANCER_GUIDE.md](example-project/LOAD_BALANCER_GUIDE.md)
+**配置文档：**
+- [LOAD_BALANCER_GUIDE.md](example-project/LOAD_BALANCER_GUIDE.md) - 基础配置指南
+- [MULTI_PORT_LB_GUIDE.md](example-project/MULTI_PORT_LB_GUIDE.md) - 多端口配置指南
+
+**多端口配置：**
+
+本项目配置了两个端口的 Load Balancer：
+
+| 端口 | 服务 | Backend Port | Named Port | 用途 |
+|------|------|--------------|------------|------|
+| 80 | HTTP | 8080 | http | 主服务 |
+| 8000 | HTTP | 8000 | revo-ai | AI 服务 |
+
+访问方式：
+```bash
+# 主服务（8080）
+curl http://LB_IP:80
+
+# AI 服务（8000）
+curl http://LB_IP:8000
+```
+
+### GCS Bucket 和 IAM Service Account 配置说明
+
+**配置类型：** Cloud Storage Bucket + IAM Service Account
+
+```hcl
+# GCS Bucket 配置
+gcs_buckets = {
+  "adwave-uat" = {
+    name               = "adwave-uat"
+    location           = "asia-southeast1"  # Region
+    storage_class      = "STANDARD"
+    versioning_enabled = false
+  }
+}
+
+# IAM Service Account 配置
+service_accounts = {
+  "applications-dev" = {
+    account_id       = "applications-dev"
+    display_name     = "Applications Development Service Account"
+    roles = [
+      "roles/firebasestorage.serviceAgent"  # Cloud Storage for Firebase Service Agent
+    ]
+    create_key       = true   # 创建 Service Account Key
+    save_key_to_file = true   # 保存 Key 到文件
+  }
+}
+```
+
+**GCS Bucket 特性：**
+- ✅ Region 存储（单可用区）
+- ✅ Standard 存储类
+- ✅ Public Access Prevention: On
+- ✅ Uniform Access Control
+- ✅ Soft Delete Policy (7 days)
+- ✅ Google-managed Encryption
+
+**Service Account 特性：**
+- ✅ 自动创建 Service Account
+- ✅ 分配 IAM 角色
+- ✅ 生成 Service Account Key (JSON)
+- ✅ 保存 Key 到本地文件 (`keys/` 目录)
+- ✅ 输出 Key 内容（Base64 和 JSON 格式）
+
+**Service Account Key 位置：**
+```
+example-project/keys/applications-dev-key.json
+```
+
+**使用 Service Account Key：**
+```bash
+# 设置环境变量
+export GOOGLE_APPLICATION_CREDENTIALS="keys/applications-dev-key.json"
+
+# 测试访问 Bucket
+gsutil ls gs://adwave-uat/
+```
+
+**配置文档：** [STORAGE_AND_IAM_GUIDE.md](example-project/STORAGE_AND_IAM_GUIDE.md)
 
 ### 常用 GCP 区域和可用区
 

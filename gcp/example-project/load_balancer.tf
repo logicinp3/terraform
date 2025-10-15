@@ -69,7 +69,7 @@ resource "google_compute_url_map" "lb_url_map" {
 
   # 使用默认的 Simple host and path rule
   # 所有流量都路由到 default_service
-  
+
   # 生命周期管理：先创建新资源再删除旧资源
   lifecycle {
     create_before_destroy = true
@@ -95,17 +95,114 @@ resource "google_compute_global_forwarding_rule" "lb_forwarding_rule" {
   # IP 版本会从 ip_address 自动推断（IPv4）
 }
 
+# ========================================
+# 8000 端口服务配置（revo-ai）
+# ========================================
+
+# 7. 创建 Health Check for 8000 端口
+resource "google_compute_health_check" "backend_health_check_8000" {
+  name                = "${var.lb_health_check_name}-8000"
+  check_interval_sec  = 5
+  timeout_sec         = 5
+  healthy_threshold   = 2
+  unhealthy_threshold = 2
+
+  tcp_health_check {
+    port = 8000
+  }
+}
+
+# 8. 创建 Backend Service for 8000 端口
+resource "google_compute_backend_service" "global_backend_8000" {
+  name                  = "${var.lb_backend_service_name}-8000"
+  protocol              = "HTTP"
+  port_name             = "revo-ai"  # 使用 revo-ai 命名端口
+  timeout_sec           = 30
+  enable_cdn            = false
+  health_checks         = [google_compute_health_check.backend_health_check_8000.id]
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+
+  # Session affinity 配置
+  session_affinity = "CLIENT_IP"
+
+  # Locality LB policy - 使用 RING_HASH 以支持 consistent_hash
+  locality_lb_policy = "RING_HASH"
+
+  # Consistent hash 配置
+  consistent_hash {
+    minimum_ring_size = 1024
+  }
+
+  # 动态添加 Backend（Instance Groups）
+  dynamic "backend" {
+    for_each = var.lb_backends
+    content {
+      group           = google_compute_instance_group.instance_groups[backend.value.instance_group_key].self_link
+      balancing_mode  = backend.value.balancing_mode
+      capacity_scaler = backend.value.capacity_scaler
+      max_utilization = backend.value.max_utilization
+    }
+  }
+
+  # 关闭 Logging
+  log_config {
+    enable      = false
+    sample_rate = 0.0
+  }
+}
+
+# 9. 创建 URL Map for 8000 端口
+resource "google_compute_url_map" "lb_url_map_8000" {
+  name            = "${var.lb_name}-8000"
+  default_service = google_compute_backend_service.global_backend_8000.id
+
+  # 使用默认的 Simple host and path rule
+  # 所有流量都路由到 8000 端口的 backend service
+
+  # 生命周期管理：先创建新资源再删除旧资源
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# 10. 创建 HTTP Target Proxy for 8000 端口
+resource "google_compute_target_http_proxy" "lb_http_proxy_8000" {
+  name    = "${var.lb_name}-http-proxy-8000"
+  url_map = google_compute_url_map.lb_url_map_8000.id
+}
+
+# 11. 创建 Global Forwarding Rule for 8000 端口
+resource "google_compute_global_forwarding_rule" "lb_forwarding_rule_8000" {
+  name                  = "${var.lb_forwarding_rule_name}-8000"
+  target                = google_compute_target_http_proxy.lb_http_proxy_8000.id
+  port_range            = "8000"
+  ip_protocol           = "TCP"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  ip_address            = google_compute_global_address.lb_external_ip.address
+
+  # 注意：ip_version 不能与 ip_address 同时指定
+  # IP 版本会从 ip_address 自动推断（IPv4）
+}
+
 # 输出信息 - Load Balancer 详情
 output "load_balancer_info" {
   value = {
     name            = var.lb_name
     external_ip     = google_compute_global_address.lb_external_ip.address
-    forwarding_rule = google_compute_global_forwarding_rule.lb_forwarding_rule.name
-    backend_service = google_compute_backend_service.global_backend.name
-    health_check    = google_compute_health_check.backend_health_check.name
-    url_map         = google_compute_url_map.lb_url_map.name
-    http_proxy      = google_compute_target_http_proxy.lb_http_proxy.name
-    access_url      = "http://${google_compute_global_address.lb_external_ip.address}"
+    # 8080 端口服务
+    forwarding_rule_8080 = google_compute_global_forwarding_rule.lb_forwarding_rule.name
+    backend_service_8080 = google_compute_backend_service.global_backend.name
+    health_check_8080    = google_compute_health_check.backend_health_check.name
+    url_map_8080         = google_compute_url_map.lb_url_map.name
+    http_proxy_8080      = google_compute_target_http_proxy.lb_http_proxy.name
+    access_url_8080      = "http://${google_compute_global_address.lb_external_ip.address}:80"
+    # 8000 端口服务
+    forwarding_rule_8000 = google_compute_global_forwarding_rule.lb_forwarding_rule_8000.name
+    backend_service_8000 = google_compute_backend_service.global_backend_8000.name
+    health_check_8000    = google_compute_health_check.backend_health_check_8000.name
+    url_map_8000         = google_compute_url_map.lb_url_map_8000.name
+    http_proxy_8000      = google_compute_target_http_proxy.lb_http_proxy_8000.name
+    access_url_8000      = "http://${google_compute_global_address.lb_external_ip.address}:8000"
   }
   description = "Load Balancer configuration details"
 }
