@@ -21,7 +21,7 @@ resource "google_compute_address" "vm_external_ip" {
       }
     }
   ]...)
-  
+
   name   = "${each.value.name}-external-ip"
   region = each.value.region
 }
@@ -146,8 +146,8 @@ output "external_ip_info" {
     for key, ip in google_compute_address.vm_external_ip : key => {
       static_ip_name    = ip.name
       static_ip_address = ip.address
-      region           = ip.region
-      vm_external_ip   = google_compute_instance.vm_instance[key].network_interface[0].access_config[0].nat_ip
+      region            = ip.region
+      vm_external_ip    = google_compute_instance.vm_instance[key].network_interface[0].access_config[0].nat_ip
     }
   }
   description = "External IP address information for all instances"
@@ -157,10 +157,10 @@ output "external_ip_info" {
 output "connection_info" {
   value = {
     for key, instance in google_compute_instance.vm_instance : key => {
-      ssh_command = "gcloud compute ssh ${instance.name} --zone=${instance.zone} --project=${var.project_id}"
+      ssh_command  = "gcloud compute ssh ${instance.name} --zone=${instance.zone} --project=${var.project_id}"
       ssh_external = "ssh -i ~/.ssh/id_rsa username@${instance.network_interface[0].access_config[0].nat_ip}"
-      internal_ip = instance.network_interface[0].network_ip
-      external_ip = instance.network_interface[0].access_config[0].nat_ip
+      internal_ip  = instance.network_interface[0].network_ip
+      external_ip  = instance.network_interface[0].access_config[0].nat_ip
     }
   }
   description = "Information for connecting to all VM instances"

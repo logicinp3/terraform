@@ -226,7 +226,7 @@ vm_instances = {
 
 # Instance Group 配置
 instance_groups = {
-  "algorithm-ew2-a" = {
+  "algorithm-ew2-a-ig" = {
     name        = "algorithm-ew2-a-ig"
     description = "Instance group for algorithm VMs in europe-west2-a"
     zone        = "europe-west2-a"
@@ -269,7 +269,7 @@ instance_groups = {
 #     instances   = ["algorithm-uc1-vm1"]  # VM instance keys (对应 vm_instances 的 key)
 #     named_ports = [
 #       {
-#         name = "backend-rtb-adaptor"
+#         name = "http" # backend-rtb-adaptor
 #         port = 8080
 #       },
 #       {
@@ -280,9 +280,47 @@ instance_groups = {
 #   }
 # }
 
+# Load Balancer 配置
+lb_name                  = "ortb-lb"
+lb_external_ip_name      = "ortb-lb-external-ip"
+lb_forwarding_rule_name  = "ortb-lb-forwarding-rule"
+lb_backend_service_name  = "ortb-global-backend"
+lb_health_check_name     = "ortb-health-check"
 
+# Load Balancer Backends 配置
+lb_backends = {
+  "backend-ew2-a" = {
+    instance_group_key = "algorithm-ew2-a-ig"  # 对应 instance_groups 的 key
+    balancing_mode     = "UTILIZATION"
+    capacity_scaler    = 1.0
+    max_utilization    = 0.8
+  }
+}
+
+# 示例：多个 Backend 配置
+# lb_backends = {
+#   "backend-ew1" = {
+#     instance_group_key = "algorithm-ew1-group"
+#     balancing_mode     = "UTILIZATION"
+#     capacity_scaler    = 1.0
+#     max_utilization    = 0.8
+#   }
+#   "backend-ew2" = {
+#     instance_group_key = "algorithm-ew2-a"
+#     balancing_mode     = "UTILIZATION"
+#     capacity_scaler    = 1.0
+#     max_utilization    = 0.8
+#   }
+#   "backend-uc1" = {
+#     instance_group_key = "algorithm-uc1-group"
+#     balancing_mode     = "UTILIZATION"
+#     capacity_scaler    = 1.0
+#     max_utilization    = 0.8
+#   }
+# }
 
 # 网络配置说明：
 # 防火墙规则支持多协议、多端口、自定义优先级和目标标签
 # VM 使用静态外部 IP 地址，每个实例完全定制化配置
 # Instance Group 支持多个实例和自定义命名端口
+# Load Balancer 支持多个 Backend Instance Groups

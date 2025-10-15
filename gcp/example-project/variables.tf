@@ -28,7 +28,7 @@ variable "default_zone" {
 variable "current_vpc_name" {
   description = "The name of the current VPC network"
   type        = string
-  default     = "your-vpc-name"
+  default     = "default"
 }
 
 # 防火墙规则配置
@@ -102,7 +102,7 @@ variable "vm_instances" {
           disk_size     = 20
           disk_type     = "pd-balanced"
           network_tags  = ["algorithm"]
-          network       = "your-vpc-name"
+          network       = "default"
           subnetwork    = "algorithm-ew1"
         }
       ]
@@ -117,11 +117,53 @@ variable "instance_groups" {
     name        = string
     description = string
     zone        = string
-    instances   = list(string)  # VM instance keys in format "region-index"
+    instances   = list(string) # VM instance keys in format "region-index"
     named_ports = list(object({
       name = string
       port = number
     }))
+  }))
+  default = {}
+}
+
+# Load Balancer 配置
+variable "lb_name" {
+  description = "Name of the load balancer"
+  type        = string
+  default     = "ortb-lb"
+}
+
+variable "lb_external_ip_name" {
+  description = "Name of the load balancer external IP address"
+  type        = string
+  default     = "ortb-lb-external-ip"
+}
+
+variable "lb_forwarding_rule_name" {
+  description = "Name of the load balancer forwarding rule"
+  type        = string
+  default     = "ortb-lb-forwarding-rule"
+}
+
+variable "lb_backend_service_name" {
+  description = "Name of the backend service"
+  type        = string
+  default     = "ortb-global-backend"
+}
+
+variable "lb_health_check_name" {
+  description = "Name of the health check"
+  type        = string
+  default     = "ortb-health-check"
+}
+
+variable "lb_backends" {
+  description = "Configuration for load balancer backends"
+  type = map(object({
+    instance_group_key = string # Instance group key from instance_groups variable
+    balancing_mode     = optional(string, "UTILIZATION")
+    capacity_scaler    = optional(number, 1.0)
+    max_utilization    = optional(number, 0.8)
   }))
   default = {}
 }

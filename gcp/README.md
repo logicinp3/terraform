@@ -6,17 +6,19 @@
 
 ```
 gcp/
-├── README.md                   # 本文件
-├── example-project/            # GCP 项目配置
-│   ├── instance_group.tf       # Instance Group 配置
-│   ├── provider.tf             # Provider 配置
-│   ├── variables.tf            # 变量定义
-│   ├── vpc.tf                  # VPC 和防火墙规则
-│   ├── vm.tf                   # VM 实例配置
-│   ├── nat.tf                  # Cloud NAT 配置
-│   ├── terraform.tfvars        # 实际变量值（gitignored）
-│   └── terraform.tfvars.example # 变量示例文件
-└── [其他项目目录]/             # 其他 GCP 项目
+├── README.md                      # 本文件
+├── example-project/               # GCP 项目配置
+│   ├── instance_group.tf          # Instance Group 配置
+│   ├── load_balancer.tf           # Load Balancer 配置
+│   ├── provider.tf                # Provider 配置
+│   ├── variables.tf               # 变量定义
+│   ├── vpc.tf                     # VPC 和防火墙规则
+│   ├── vm.tf                      # VM 实例配置
+│   ├── nat.tf                     # Cloud NAT 配置
+│   ├── terraform.tfvars           # 实际变量值（gitignored）
+│   ├── terraform.tfvars.example   # 变量示例文件
+│   └── LOAD_BALANCER_GUIDE.md     # Load Balancer 配置指南
+└── [其他项目目录]/                # 其他 GCP 项目
 ```
 
 ## 前置要求
@@ -309,7 +311,7 @@ instance_groups = {
     instances   = ["algorithm-ew2-vm1"]  # 引用 vm_instances 的 key
     named_ports = [
       {
-        name = "backend-rtb-adaptor"
+        name = "http"
         port = 8080
       },
       {
@@ -325,6 +327,40 @@ instance_groups = {
 - `instances` 列表中的值必须对应 `vm_instances` 中的 key
 - 可以将多个 VM 实例添加到同一个 Instance Group
 - 命名端口用于负载均衡器配置
+
+### Load Balancer 配置说明
+
+**配置类型：** Global External Application Load Balancer
+
+```hcl
+# Load Balancer 基础配置
+lb_name                  = "ortb-lb"
+lb_external_ip_name      = "ortb-lb-external-ip"
+lb_forwarding_rule_name  = "ortb-lb-forwarding-rule"
+lb_backend_service_name  = "ortb-global-backend"
+lb_health_check_name     = "ortb-health-check"
+
+# Backend 配置
+lb_backends = {
+  "backend-ew2-a" = {
+    instance_group_key = "algorithm-ew2-a"  # 对应 instance_groups 的 key
+    balancing_mode     = "UTILIZATION"
+    capacity_scaler    = 1.0
+    max_utilization    = 0.8
+  }
+}
+```
+
+**关键特性：**
+- ✅ Global 区域访问
+- ✅ External 外部访问
+- ✅ HTTP 协议（端口 80）
+- ✅ 静态外部 IP
+- ✅ TCP Health Check（端口 8080）
+- ✅ Session Affinity（Client IP）
+- ✅ 支持多个 Backend Instance Groups
+
+**详细配置请参考：** [LOAD_BALANCER_GUIDE.md](example-project/LOAD_BALANCER_GUIDE.md)
 
 ### 常用 GCP 区域和可用区
 
@@ -428,7 +464,91 @@ lifecycle {
 - ✅ 保护已运行的实例不受启动脚本变更影响
 - ✅ 新实例仍会应用启动脚本
 
-#### 5. 权限不足
+#### 5. Load Balancer Health Check 失败
+
+**错误信息：**
+```
+Backend instances are unhealthy
+```
+
+**原因：**
+Health Check 无法访问实例的 8080 端口
+
+**解决方案：**
+
+添加防火墙规则允许 Health Check 探测：
+
+```hcl
+firewall_rules = {
+  "allow-health-check" = {
+    name          = "your-project-allow-health-check"
+    description   = "Allow health check probes from GCP"
+    priority      = 1000
+    source_ranges = ["35.191.0.0/16", "130.211.0.0/22"]  # GCP Health Check IP 范围
+    target_tags   = ["algorithm"]
+    allow = [
+      {
+        protocol = "tcp"
+        ports    = ["8080"]
+      }
+    ]
+  }
+}
+```
+
+**验证：**
+```bash
+# 检查 Health Check 状态
+gcloud compute backend-services get-health ortb-global-backend --global
+```
+
+#### 6. Load Balancer Consistent Hash 配置错误
+
+**错误信息：**
+```
+Error: ConsistentHash can be set only if the Locality Lb policy is set to MAGLEV or RING_HASH.
+```
+
+**原因：**
+使用 `consistent_hash` 必须同时设置 `locality_lb_policy`
+
+**解决方案：**
+
+已在 `load_balancer.tf` 中添加：
+
+```hcl
+resource "google_compute_backend_service" "global_backend" {
+  session_affinity   = "CLIENT_IP"
+  locality_lb_policy = "RING_HASH"  # 必须设置
+  
+  consistent_hash {
+    minimum_ring_size = 1024
+  }
+}
+```
+
+#### 7. Forwarding Rule IP 配置冲突
+
+**错误信息：**
+```
+Error: IP Version and IP Address cannot be specified at the same time.
+```
+
+**原因：**
+在 Forwarding Rule 中不能同时指定 `ip_version` 和 `ip_address`
+
+**解决方案：**
+
+移除 `ip_version`，IP 版本会自动从地址推断：
+
+```hcl
+resource "google_compute_global_forwarding_rule" "lb_forwarding_rule" {
+  ip_address = google_compute_global_address.lb_external_ip.address
+  # 移除 ip_version = "IPV4"  # 会自动推断
+}
+```
+
+#### 8. 权限不足
 
 **错误信息：**
 ```
