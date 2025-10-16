@@ -28,7 +28,7 @@ variable "default_zone" {
 variable "current_vpc_name" {
   description = "The name of the current VPC network"
   type        = string
-  default     = "your-vpc-name"
+  default     = "default"
 }
 
 # 防火墙规则配置
@@ -78,6 +78,7 @@ variable "vm_instances" {
     instances = list(object({
       name          = string
       machine_type  = string
+      region        = string
       zone          = string
       image_family  = string
       image_project = string
@@ -94,13 +95,14 @@ variable "vm_instances" {
         {
           name          = "default-vm"
           machine_type  = "e2-small"
-          zone          = "europe-west1-b"
+          region        = "europe-west2"
+          zone          = "europe-west2-a"
           image_family  = "ubuntu-2204-lts"
           image_project = "ubuntu-os-cloud"
           disk_size     = 20
           disk_type     = "pd-balanced"
           network_tags  = ["algorithm"]
-          network       = "your-vpc-name"
+          network       = "default"
           subnetwork    = "algorithm-ew1"
         }
       ]
@@ -115,11 +117,99 @@ variable "instance_groups" {
     name        = string
     description = string
     zone        = string
-    instances   = list(string)  # VM instance keys in format "region-index"
+    instances   = list(string) # VM instance keys in format "region-index"
     named_ports = list(object({
       name = string
       port = number
     }))
+  }))
+  default = {}
+}
+
+# Load Balancer 配置
+variable "lb_name" {
+  description = "Name of the load balancer"
+  type        = string
+  default     = "ortb-lb"
+}
+
+variable "lb_external_ip_name" {
+  description = "Name of the load balancer external IP address"
+  type        = string
+  default     = "ortb-lb-external-ip"
+}
+
+variable "lb_forwarding_rule_name" {
+  description = "Name of the load balancer forwarding rule"
+  type        = string
+  default     = "ortb-lb-forwarding-rule"
+}
+
+variable "lb_backend_service_name" {
+  description = "Name of the backend service"
+  type        = string
+  default     = "ortb-global-backend"
+}
+
+variable "lb_health_check_name" {
+  description = "Name of the health check"
+  type        = string
+  default     = "ortb-health-check"
+}
+
+variable "lb_backends" {
+  description = "Configuration for load balancer backends"
+  type = map(object({
+    instance_group_key = string # Instance group key from instance_groups variable
+    balancing_mode     = optional(string, "UTILIZATION")
+    capacity_scaler    = optional(number, 1.0)
+    max_utilization    = optional(number, 0.8)
+  }))
+  default = {}
+}
+
+# ========================================
+# GCS Bucket 配置
+# ========================================
+
+variable "gcs_buckets" {
+  description = "GCS Buckets configuration"
+  type = map(object({
+    name               = string
+    location           = string # Region name (e.g., "asia-southeast1")
+    storage_class      = optional(string, "STANDARD")
+    versioning_enabled = optional(bool, false)
+    labels             = optional(map(string), {})
+    lifecycle_rules = optional(list(object({
+      action = object({
+        type          = string
+        storage_class = optional(string)
+      })
+      condition = object({
+        age                   = optional(number)
+        created_before        = optional(string)
+        with_state            = optional(string)
+        matches_storage_class = optional(list(string))
+        num_newer_versions    = optional(number)
+      })
+    })), [])
+  }))
+  default = {}
+}
+
+# ========================================
+# IAM Service Account 配置
+# ========================================
+
+variable "service_accounts" {
+  description = "Service Accounts configuration"
+  type = map(object({
+    account_id       = string
+    display_name     = string
+    description      = optional(string, "")
+    roles            = list(string)          # List of IAM roles to assign
+    create_key       = optional(bool, false) # Whether to create a key
+    save_key_to_file = optional(bool, false) # Whether to save key to file
   }))
   default = {}
 }

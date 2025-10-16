@@ -13,14 +13,15 @@ data "google_compute_default_service_account" "default" {
 # 为每个实例创建静态外部 IP 地址
 resource "google_compute_address" "vm_external_ip" {
   for_each = merge([
-    for region, config in var.vm_instances : {
-      for idx, instance in config.instances : "${region}-${idx}" => {
+    for vm_key, config in var.vm_instances : {
+      for instance in config.instances :
+      vm_key => {
         name   = instance.name
-        region = var.subnet_configs[instance.subnetwork].region
+        region = instance.region
       }
     }
   ]...)
-  
+
   name   = "${each.value.name}-external-ip"
   region = each.value.region
 }
@@ -28,12 +29,13 @@ resource "google_compute_address" "vm_external_ip" {
 # 为每个实例创建 VM
 resource "google_compute_instance" "vm_instance" {
   for_each = merge([
-    for region, config in var.vm_instances : {
-      for idx, instance in config.instances : "${region}-${idx}" => {
+    for vm_key, config in var.vm_instances : {
+      for instance in config.instances :
+      vm_key => {
         name          = instance.name
         machine_type  = instance.machine_type
         zone          = instance.zone
-        region        = region
+        region        = instance.region
         image_family  = instance.image_family
         image_project = instance.image_project
         disk_size     = instance.disk_size
@@ -67,6 +69,7 @@ resource "google_compute_instance" "vm_instance" {
   }
 
   # 启动脚本 - 安装 Docker
+  # 注意：metadata 变更已在 lifecycle 中设置为 ignore_changes，不会导致实例重建
   metadata_startup_script = <<-EOF
     #!/bin/bash
     
@@ -111,6 +114,11 @@ resource "google_compute_instance" "vm_instance" {
   # 生命周期配置
   lifecycle {
     prevent_destroy = false
+    # 忽略 metadata 变更，避免因启动脚本变化导致实例重建
+    ignore_changes = [
+      metadata,
+      metadata_startup_script,
+    ]
   }
 }
 
@@ -124,7 +132,6 @@ output "vm_instance_info" {
       internal_ip  = instance.network_interface[0].network_ip
       external_ip  = instance.network_interface[0].access_config[0].nat_ip
       network_tags = instance.tags
-      region       = regex("^(.+)-\\d+$", key)[0]
       network      = split("/", instance.network_interface[0].network)[length(split("/", instance.network_interface[0].network)) - 1]
       subnetwork   = split("/", instance.network_interface[0].subnetwork)[length(split("/", instance.network_interface[0].subnetwork)) - 1]
       static_ip    = google_compute_address.vm_external_ip[key].address
@@ -139,8 +146,8 @@ output "external_ip_info" {
     for key, ip in google_compute_address.vm_external_ip : key => {
       static_ip_name    = ip.name
       static_ip_address = ip.address
-      region           = ip.region
-      vm_external_ip   = google_compute_instance.vm_instance[key].network_interface[0].access_config[0].nat_ip
+      region            = ip.region
+      vm_external_ip    = google_compute_instance.vm_instance[key].network_interface[0].access_config[0].nat_ip
     }
   }
   description = "External IP address information for all instances"
@@ -150,10 +157,10 @@ output "external_ip_info" {
 output "connection_info" {
   value = {
     for key, instance in google_compute_instance.vm_instance : key => {
-      ssh_command = "gcloud compute ssh ${instance.name} --zone=${instance.zone} --project=${var.project_id}"
+      ssh_command  = "gcloud compute ssh ${instance.name} --zone=${instance.zone} --project=${var.project_id}"
       ssh_external = "ssh -i ~/.ssh/id_rsa username@${instance.network_interface[0].access_config[0].nat_ip}"
-      internal_ip = instance.network_interface[0].network_ip
-      external_ip = instance.network_interface[0].access_config[0].nat_ip
+      internal_ip  = instance.network_interface[0].network_ip
+      external_ip  = instance.network_interface[0].access_config[0].nat_ip
     }
   }
   description = "Information for connecting to all VM instances"

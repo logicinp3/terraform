@@ -133,11 +133,12 @@ subnet_configs = {
 
 # VM 实例配置 - 支持每个实例完全定制化配置
 vm_instances = {
-  "europe-west2" = {
+  "algorithm-ew2-vm1" = {
     instances = [
       {
         name          = "algorithm-ew2-vm1"
         machine_type  = "custom-8-16384"  # 8 vCPU, 16GB RAM
+        region        = "europe-west2"
         zone          = "europe-west2-b"
         image_family  = "ubuntu-2204-lts"
         image_project = "ubuntu-os-cloud"
@@ -151,13 +152,14 @@ vm_instances = {
   }
 }
 
-# 示例：完整的三个区域配置，每个实例完全定制化
+# 示例：多个 VM 实例配置
 # vm_instances = {
-#   "europe-west1" = {
+#   "algorithm-ew1-vm1" = {
 #     instances = [
 #       {
 #         name          = "algorithm-ew1-vm1"
 #         machine_type  = "custom-8-16384"  # 8 vCPU, 16GB RAM
+#         region        = "europe-west1"
 #         zone          = "europe-west1-a"
 #         image_family  = "ubuntu-2204-lts"
 #         image_project = "ubuntu-os-cloud"
@@ -166,10 +168,15 @@ vm_instances = {
 #         network_tags  = ["algorithm"]
 #         network       = "your-vpc-name"
 #         subnetwork    = "algorithm-ew1"
-#       },
+#       }
+#     ]
+#   }
+#   "algorithm-ew1-vm2" = {
+#     instances = [
 #       {
 #         name          = "algorithm-ew1-vm2"
 #         machine_type  = "custom-8-16384"  # 8 vCPU, 16GB RAM
+#         region        = "europe-west1"
 #         zone          = "europe-west1-b"
 #         image_family  = "ubuntu-2204-lts"
 #         image_project = "ubuntu-os-cloud"
@@ -181,11 +188,12 @@ vm_instances = {
 #       }
 #     ]
 #   }
-#   "us-central1" = {
+#   "algorithm-uc1-vm1" = {
 #     instances = [
 #       {
 #         name          = "algorithm-uc1-vm1"
 #         machine_type  = "custom-8-16384"  # 8 vCPU, 16GB RAM
+#         region        = "us-central1"
 #         zone          = "us-central1-a"
 #         image_family  = "ubuntu-2204-lts"
 #         image_project = "ubuntu-os-cloud"
@@ -197,11 +205,12 @@ vm_instances = {
 #       }
 #     ]
 #   }
-#   "asia-southeast1" = {
+#   "algorithm-as1-vm1" = {
 #     instances = [
 #       {
 #         name          = "algorithm-as1-vm1"
 #         machine_type  = "custom-8-16384"  # 8 vCPU, 16GB RAM
+#         region        = "asia-southeast1"
 #         zone          = "asia-southeast1-a"
 #         image_family  = "ubuntu-2204-lts"
 #         image_project = "ubuntu-os-cloud"
@@ -217,18 +226,18 @@ vm_instances = {
 
 # Instance Group 配置
 instance_groups = {
-  "algorithm-ew2-a" = {
+  "algorithm-ew2-a-ig" = {
     name        = "algorithm-ew2-a-ig"
     description = "Instance group for algorithm VMs in europe-west2-a"
     zone        = "europe-west2-a"
-    instances   = ["europe-west2-0"]  # VM instance keys
+    instances   = ["algorithm-ew2-vm1"]  # VM instance keys
     named_ports = [
       {
-        name = "backend-rtb-adaptor"
+        name = "http" # backend-rtb-adaptor
         port = 8080
       },
       {
-        name = "revo-ai"
+        name = "revo-ai" # revo-ai
         port = 8000
       }
     ]
@@ -237,11 +246,11 @@ instance_groups = {
 
 # 示例：多个 Instance Group 配置
 # instance_groups = {
-#   "algorithm-ew2-a" = {
-#     name        = "algorithm-ew2-a-ig"
-#     description = "Instance group for algorithm VMs in europe-west2-a"
-#     zone        = "europe-west2-a"
-#     instances   = ["europe-west2-0", "europe-west2-1"]
+#   "algorithm-ew1-group" = {
+#     name        = "algorithm-ew1-ig"
+#     description = "Instance group for algorithm VMs in europe-west1-a"
+#     zone        = "europe-west1-a"
+#     instances   = ["algorithm-ew1-vm1", "algorithm-ew1-vm2"]  # VM instance keys (对应 vm_instances 的 key)
 #     named_ports = [
 #       {
 #         name = "backend-rtb-adaptor"
@@ -253,14 +262,14 @@ instance_groups = {
 #       }
 #     ]
 #   }
-#   "algorithm-uc1-a" = {
-#     name        = "algorithm-uc1-a-ig"
+#   "algorithm-uc1-group" = {
+#     name        = "algorithm-uc1-ig"
 #     description = "Instance group for algorithm VMs in us-central1-a"
 #     zone        = "us-central1-a"
-#     instances   = ["us-central1-0"]
+#     instances   = ["algorithm-uc1-vm1"]  # VM instance keys (对应 vm_instances 的 key)
 #     named_ports = [
 #       {
-#         name = "backend-rtb-adaptor"
+#         name = "http" # backend-rtb-adaptor
 #         port = 8080
 #       },
 #       {
@@ -271,9 +280,144 @@ instance_groups = {
 #   }
 # }
 
+# Load Balancer 配置
+lb_name                  = "ortb-lb"
+lb_external_ip_name      = "ortb-lb-external-ip"
+lb_forwarding_rule_name  = "ortb-lb-forwarding-rule"
+lb_backend_service_name  = "ortb-global-backend"
+lb_health_check_name     = "ortb-health-check"
 
+# Load Balancer Backends 配置
+lb_backends = {
+  "backend-ew2-a" = {
+    instance_group_key = "algorithm-ew2-a-ig"  # 对应 instance_groups 的 key
+    balancing_mode     = "UTILIZATION"
+    capacity_scaler    = 1.0
+    max_utilization    = 0.8
+  }
+}
+
+# 示例：多个 Backend 配置
+# lb_backends = {
+#   "backend-ew1" = {
+#     instance_group_key = "algorithm-ew1-group"
+#     balancing_mode     = "UTILIZATION"
+#     capacity_scaler    = 1.0
+#     max_utilization    = 0.8
+#   }
+#   "backend-ew2" = {
+#     instance_group_key = "algorithm-ew2-a"
+#     balancing_mode     = "UTILIZATION"
+#     capacity_scaler    = 1.0
+#     max_utilization    = 0.8
+#   }
+#   "backend-uc1" = {
+#     instance_group_key = "algorithm-uc1-group"
+#     balancing_mode     = "UTILIZATION"
+#     capacity_scaler    = 1.0
+#     max_utilization    = 0.8
+#   }
+# }
+
+# ========================================
+# GCS Bucket 配置
+# ========================================
+
+gcs_buckets = {
+  "adwave-uat" = {
+    name               = "adwave-uat"
+    location           = "asia-southeast1"  # Region (单可用区)
+    storage_class      = "STANDARD"
+    versioning_enabled = false
+    labels = {
+      environment = "uat"
+      managed_by  = "terraform"
+    }
+    # 可选：生命周期规则
+    lifecycle_rules = []
+  }
+}
+
+# 示例：多个 Bucket 配置
+# gcs_buckets = {
+#   "adwave-uat" = {
+#     name               = "adwave-uat"
+#     location           = "asia-southeast1"
+#     storage_class      = "STANDARD"
+#     versioning_enabled = false
+#     labels = {
+#       environment = "uat"
+#     }
+#   }
+#   "adwave-prod" = {
+#     name               = "adwave-prod"
+#     location           = "us-central1"
+#     storage_class      = "STANDARD"
+#     versioning_enabled = true
+#     labels = {
+#       environment = "production"
+#     }
+#     # 生命周期规则示例
+#     lifecycle_rules = [
+#       {
+#         action = {
+#           type          = "SetStorageClass"
+#           storage_class = "NEARLINE"
+#         }
+#         condition = {
+#           age                   = 30
+#           matches_storage_class = ["STANDARD"]
+#         }
+#       }
+#     ]
+#   }
+# }
+
+# ========================================
+# IAM Service Account 配置
+# ========================================
+
+service_accounts = {
+  "applications-uat" = {
+    account_id       = "applications-uat"
+    display_name     = "applications-uat"
+    description      = "Service account for development applications"
+    roles = [
+      "roles/firebasestorage.serviceAgent"  # Cloud Storage for Firebase Service Agent
+    ]
+    create_key       = true   # 创建 Service Account Key
+    save_key_to_file = true   # 保存 Key 到文件
+  }
+}
+
+# 示例：多个 Service Account 配置
+# service_accounts = {
+#   "applications-dev" = {
+#     account_id       = "applications-dev"
+#     display_name     = "Applications Development Service Account"
+#     description      = "Service account for development applications"
+#     roles = [
+#       "roles/firebasestorage.serviceAgent",
+#       "roles/storage.objectAdmin"
+#     ]
+#     create_key       = true
+#     save_key_to_file = true
+#   }
+#   "applications-prod" = {
+#     account_id       = "applications-prod"
+#     display_name     = "Applications Production Service Account"
+#     description      = "Service account for production applications"
+#     roles = [
+#       "roles/firebasestorage.serviceAgent",
+#       "roles/storage.objectViewer"
+#     ]
+#     create_key       = false  # 不创建 Key
+#     save_key_to_file = false
+#   }
+# }
 
 # 网络配置说明：
 # 防火墙规则支持多协议、多端口、自定义优先级和目标标签
 # VM 使用静态外部 IP 地址，每个实例完全定制化配置
 # Instance Group 支持多个实例和自定义命名端口
+# Load Balancer 支持多个 Backend Instance Groups
