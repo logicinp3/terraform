@@ -116,7 +116,7 @@ resource "google_compute_health_check" "backend_health_check_8000" {
 resource "google_compute_backend_service" "global_backend_8000" {
   name                  = "${var.lb_backend_service_name}-8000"
   protocol              = "HTTP"
-  port_name             = "revo-ai"  # 使用 revo-ai 命名端口
+  port_name             = "revo-ai" # 使用 revo-ai 命名端口
   timeout_sec           = 30
   enable_cdn            = false
   health_checks         = [google_compute_health_check.backend_health_check_8000.id]
@@ -187,8 +187,8 @@ resource "google_compute_global_forwarding_rule" "lb_forwarding_rule_8000" {
 # 输出信息 - Load Balancer 详情
 output "load_balancer_info" {
   value = {
-    name            = var.lb_name
-    external_ip     = google_compute_global_address.lb_external_ip.address
+    name        = var.lb_name
+    external_ip = google_compute_global_address.lb_external_ip.address
     # 8080 端口服务
     forwarding_rule_8080 = google_compute_global_forwarding_rule.lb_forwarding_rule.name
     backend_service_8080 = google_compute_backend_service.global_backend.name

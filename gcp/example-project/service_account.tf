@@ -37,10 +37,10 @@ resource "google_service_account_key" "service_account_keys" {
   }
 
   service_account_id = google_service_account.service_accounts[each.key].name
-  
+
   # Key 算法
   key_algorithm = "KEY_ALG_RSA_2048"
-  
+
   # 私钥类型：JSON 格式
   private_key_type = "TYPE_GOOGLE_CREDENTIALS_FILE"
 }
@@ -54,7 +54,7 @@ resource "local_file" "service_account_key_files" {
 
   content  = base64decode(google_service_account_key.service_account_keys[each.key].private_key)
   filename = "${path.module}/keys/${var.service_accounts[each.key].account_id}-key.json"
-  
+
   # 设置文件权限（仅所有者可读写）
   file_permission = "0600"
 }

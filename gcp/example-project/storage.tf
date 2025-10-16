@@ -7,16 +7,16 @@ resource "google_storage_bucket" "buckets" {
   name          = each.value.name
   location      = each.value.location
   storage_class = each.value.storage_class
-  
-  # Public access prevention: On
+
+  # Public access prevention: enforced / inherited / null
   public_access_prevention = "enforced"
-  
+
   # Access control: Uniform
   uniform_bucket_level_access = true
 
   # Soft delete policy - Use default retention duration (7 days)
   soft_delete_policy {
-    retention_duration_seconds = 604800  # 7 days = 7 * 24 * 60 * 60
+    retention_duration_seconds = 604800 # 7 days = 7 * 24 * 60 * 60
   }
 
   # 数据加密：Google-managed encryption key (默认)
@@ -50,7 +50,7 @@ resource "google_storage_bucket" "buckets" {
 
   # 防止意外删除
   lifecycle {
-    prevent_destroy = false  # 设置为 true 可以防止意外删除
+    prevent_destroy = false # 设置为 true 可以防止意外删除
   }
 }
 
@@ -65,7 +65,7 @@ output "gcs_buckets_info" {
       storage_class            = bucket.storage_class
       public_access_prevention = bucket.public_access_prevention
       uniform_access           = bucket.uniform_bucket_level_access
-      soft_delete_retention    = bucket.soft_delete_policy
+      soft_delete_retention    = bucket.soft_delete_policy[0]
     }
   }
   description = "GCS Buckets information"

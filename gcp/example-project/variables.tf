@@ -175,12 +175,12 @@ variable "lb_backends" {
 variable "gcs_buckets" {
   description = "GCS Buckets configuration"
   type = map(object({
-    name                = string
-    location            = string           # Region name (e.g., "asia-southeast1")
-    storage_class       = optional(string, "STANDARD")
-    versioning_enabled  = optional(bool, false)
-    labels              = optional(map(string), {})
-    lifecycle_rules     = optional(list(object({
+    name               = string
+    location           = string # Region name (e.g., "asia-southeast1")
+    storage_class      = optional(string, "STANDARD")
+    versioning_enabled = optional(bool, false)
+    labels             = optional(map(string), {})
+    lifecycle_rules = optional(list(object({
       action = object({
         type          = string
         storage_class = optional(string)
@@ -207,9 +207,9 @@ variable "service_accounts" {
     account_id       = string
     display_name     = string
     description      = optional(string, "")
-    roles            = list(string)  # List of IAM roles to assign
-    create_key       = optional(bool, false)  # Whether to create a key
-    save_key_to_file = optional(bool, false)  # Whether to save key to file
+    roles            = list(string)          # List of IAM roles to assign
+    create_key       = optional(bool, false) # Whether to create a key
+    save_key_to_file = optional(bool, false) # Whether to save key to file
   }))
   default = {}
 }
