@@ -75,17 +75,6 @@ output "service_accounts_info" {
   description = "Service Accounts information"
 }
 
-# 输出 Service Account Key（敏感信息）
-output "service_account_keys_json" {
-  value = {
-    for key, sa_key in google_service_account_key.service_account_keys : key => {
-      private_key_json = base64decode(sa_key.private_key)
-    }
-  }
-  description = "Service Account Keys in JSON format (sensitive)"
-  sensitive   = true
-}
-
 # 输出 Service Account Key 的 base64 编码（敏感信息）
 output "service_account_keys_base64" {
   value = {
