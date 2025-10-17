@@ -378,9 +378,9 @@ gcs_buckets = {
 # ========================================
 
 service_accounts = {
-  "applications-uat" = {
-    account_id       = "applications-uat"
-    display_name     = "applications-uat"
+  "applications" = {
+    account_id       = "applications-dev"
+    display_name     = "applications-dev"
     description      = "Service account for development applications"
     roles = [
       "roles/firebasestorage.serviceAgent"  # Cloud Storage for Firebase Service Agent
@@ -393,9 +393,9 @@ service_accounts = {
 # 示例：多个 Service Account 配置
 # service_accounts = {
 #   "applications-dev" = {
-#     account_id       = "applications-dev"
-#     display_name     = "Applications Development Service Account"
-#     description      = "Service account for development applications"
+#     account_id       = "applications-uat"
+#     display_name     = "applications-uat"
+#     description      = "Service account for uat applications"
 #     roles = [
 #       "roles/firebasestorage.serviceAgent",
 #       "roles/storage.objectAdmin"
@@ -405,14 +405,14 @@ service_accounts = {
 #   }
 #   "applications-prod" = {
 #     account_id       = "applications-prod"
-#     display_name     = "Applications Production Service Account"
-#     description      = "Service account for production applications"
+#     display_name     = "applications-prod"
+#     description      = "Service account for uat applications"
 #     roles = [
 #       "roles/firebasestorage.serviceAgent",
 #       "roles/storage.objectViewer"
 #     ]
-#     create_key       = false  # 不创建 Key
-#     save_key_to_file = false
+#     create_key       = true
+#     save_key_to_file = true
 #   }
 # }
 
