@@ -12,6 +12,38 @@ default_zone   = "asia-southeast1-a"
 # 当前 VPC 配置
 current_vpc_name = "your-vpc-name"
 
+# 多区域子网配置
+subnet_configs = {
+  "revosurge-db" = {
+    region             = "asia-southeast1"
+    primary_ipv4_range = "172.20.0.0/24"
+  }
+  "revosurge-middleware" = {
+    region             = "asia-southeast1"
+    primary_ipv4_range = "172.20.1.0/24"
+  }
+  "revosurge-gke" = {
+    region             = "asia-southeast1"
+    primary_ipv4_range = "172.20.2.0/24"
+  }
+  "algorithm-ew1" = {
+    region             = "europe-west2"
+    primary_ipv4_range = "172.20.10.0/24"
+  }
+  "algorithm-uc1" = {
+    region             = "us-central1"
+    primary_ipv4_range = "172.20.11.0/24"
+  }
+  "algorithm-as1" = {
+    region             = "asia-southeast1"
+    primary_ipv4_range = "172.20.12.0/24"
+  }
+  "algorithm-ew2" = {
+    region             = "europe-west2"
+    primary_ipv4_range = "172.20.13.0/24"
+  }
+}
+
 # 防火墙规则配置
 firewall_rules = {
   "allow-ssh" = {
@@ -19,7 +51,7 @@ firewall_rules = {
     description   = "Allow SSH access to instances with specific tags"
     priority      = 1000
     source_ranges = ["0.0.0.0/0"]
-    target_tags   = ["k8s-manager", "algorithm"]
+    target_tags   = ["k8s-manager", "algorithm", "retool"]
     allow = [
       {
         protocol = "tcp"
@@ -57,6 +89,19 @@ firewall_rules = {
       {
         protocol = "icmp"
         ports    = null
+      }
+    ]
+  }
+  "your-project-name-allow-retool-server" = {
+    name          = "your-project-name-allow-retool-server"
+    description   = "Allow external requests to retool-server instances"
+    priority      = 1000
+    source_ranges = ["0.0.0.0/0"]
+    target_tags   = ["retool"]
+    allow = [
+      {
+        protocol = "tcp"
+        ports    = ["80", "3000"]
       }
     ]
   }
@@ -111,42 +156,73 @@ firewall_rules = {
 #   }
 # }
 
-# 多区域子网配置
-subnet_configs = {
-  "algorithm-ew1" = {
-    region             = "europe-west2"
-    primary_ipv4_range = "172.20.10.0/24"
-  }
-  "algorithm-uc1" = {
-    region             = "us-central1"
-    primary_ipv4_range = "172.20.11.0/24"
-  }
-  "algorithm-as1" = {
-    region             = "asia-southeast1"
-    primary_ipv4_range = "172.20.12.0/24"
-  }
-  "algorithm-ew2" = {
-    region             = "europe-west2"
-    primary_ipv4_range = "172.20.13.0/24"
-  }
-}
-
 # VM 实例配置 - 支持每个实例完全定制化配置
 vm_instances = {
+  "retool-server" = {
+    instances = [
+      {
+        name          = "retool-server"
+        machine_type  = "custom-8-16384"
+        region        = "asia-southeast1"
+        zone          = "asia-southeast1-a"
+        image_family  = "ubuntu-2204-lts"
+        image_project = "ubuntu-os-cloud"
+        disk_size     = 50
+        disk_type     = "pd-balanced"
+        network_tags  = ["retool"]
+        network       = "revosurge-uat"
+        subnetwork    = "revosurge-middleware"
+      }
+    ]
+  }
   "algorithm-ew2-vm1" = {
     instances = [
       {
         name          = "algorithm-ew2-vm1"
-        machine_type  = "custom-8-16384"  # 8 vCPU, 16GB RAM
+        machine_type  = "custom-8-16384"
         region        = "europe-west2"
         zone          = "europe-west2-b"
         image_family  = "ubuntu-2204-lts"
         image_project = "ubuntu-os-cloud"
-        disk_size     = 20
+        disk_size     = 50
         disk_type     = "pd-balanced"
         network_tags  = ["algorithm"]
         network       = "your-vpc-name"
         subnetwork    = "algorithm-ew2"
+      },
+    ]
+  }
+  "algorithm-as1-vm1" = {
+    instances = [
+      {
+        name          = "algorithm-as1-vm1"
+        machine_type  = "ccustom-8-16384"
+        region        = "asia-southeast1"
+        zone          = "asia-southeast1-a"
+        image_family  = "ubuntu-2204-lts"
+        image_project = "ubuntu-os-cloud"
+        disk_size     = 50
+        disk_type     = "pd-balanced"
+        network_tags  = ["algorithm"]
+        network       = "your-vpc-name"
+        subnetwork    = "algorithm-as1"
+      },
+    ]
+  }
+  "algorithm-uc1-vm1" = {
+    instances = [
+      {
+        name          = "algorithm-uc1-vm1"
+        machine_type  = "custom-8-16384"
+        region        = "us-central1"
+        zone          = "us-central1-a"
+        image_family  = "ubuntu-2204-lts"
+        image_project = "ubuntu-os-cloud"
+        disk_size     = 50
+        disk_type     = "pd-balanced"
+        network_tags  = ["algorithm"]
+        network       = "your-vpc-name"
+        subnetwork    = "algorithm-uc1"
       },
     ]
   }
@@ -286,6 +362,8 @@ lb_external_ip_name      = "ortb-lb-external-ip"
 lb_forwarding_rule_name  = "ortb-lb-forwarding-rule"
 lb_backend_service_name  = "ortb-global-backend"
 lb_health_check_name     = "ortb-health-check"
+lb_ssl_certificate_name  = "ortb-ssl-cert"
+lb_ssl_certificate_domains = ["your.example.com"]
 
 # Load Balancer Backends 配置
 lb_backends = {

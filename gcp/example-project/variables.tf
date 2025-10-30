@@ -168,6 +168,19 @@ variable "lb_backends" {
   default = {}
 }
 
+# HTTPS SSL 证书变量
+variable "lb_ssl_certificate_name" {
+  description = "Name for Google-managed SSL certificate (for HTTPS frontend)"
+  type        = string
+  default     = "ortb-ssl-cert"
+}
+
+variable "lb_ssl_certificate_domains" {
+  description = "Domain list to bind for Google-managed classic certificate"
+  type        = list(string)
+  default     = ["example.com"]
+}
+
 # ========================================
 # GCS Bucket 配置
 # ========================================

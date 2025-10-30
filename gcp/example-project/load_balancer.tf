@@ -184,6 +184,31 @@ resource "google_compute_global_forwarding_rule" "lb_forwarding_rule_8000" {
   # IP 版本会从 ip_address 自动推断（IPv4）
 }
 
+# HTTPS 证书资源
+resource "google_compute_managed_ssl_certificate" "lb_managed_cert" {
+  name = var.lb_ssl_certificate_name
+  managed {
+    domains = var.lb_ssl_certificate_domains
+  }
+}
+
+# HTTPS Target Proxy
+resource "google_compute_target_https_proxy" "lb_https_proxy" {
+  name             = "${var.lb_name}-https-proxy"
+  url_map          = google_compute_url_map.lb_url_map.id
+  ssl_certificates = [google_compute_managed_ssl_certificate.lb_managed_cert.id]
+}
+
+# HTTPS Forwarding Rule (Frontend)
+resource "google_compute_global_forwarding_rule" "lb_forwarding_rule_https" {
+  name                  = "${var.lb_forwarding_rule_name}-https"
+  target                = google_compute_target_https_proxy.lb_https_proxy.id
+  port_range            = "443"
+  ip_protocol           = "TCP"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  ip_address            = google_compute_global_address.lb_external_ip.address
+}
+
 # 输出信息 - Load Balancer 详情
 output "load_balancer_info" {
   value = {
