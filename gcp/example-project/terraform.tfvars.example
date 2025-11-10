@@ -306,16 +306,30 @@ instance_groups = {
     name        = "algorithm-ew2-a-ig"
     description = "Instance group for algorithm VMs in europe-west2-a"
     zone        = "europe-west2-a"
-    instances   = ["algorithm-ew2-vm1"]  # VM instance keys
+    instances   = ["algorithm-ew2-vm1"] # VM instance keys
     named_ports = [
-      {
-        name = "http" # backend-rtb-adaptor
-        port = 8080
-      },
-      {
-        name = "revo-ai" # revo-ai
-        port = 8000
-      }
+      { name = "http", port = 80 },
+      { name = "revo-ai", port = 8000 },
+    ]
+  }
+  "algorithm-as1-a-ig" = {
+    name        = "algorithm-as1-a-ig"
+    description = "Instance group for algorithm VMs in asia-southeast1-a"
+    zone        = "asia-southeast1-a"
+    instances   = ["algorithm-as1-vm1"]
+    named_ports = [
+      { name = "http", port = 80 },
+      { name = "revo-ai", port = 8000 },
+    ]
+  }
+  "algorithm-uc1-a-ig" = {
+    name        = "algorithm-uc1-a-ig"
+    description = "Instance group for algorithm VMs in us-central1-a"
+    zone        = "us-central1-a"
+    instances   = ["algorithm-uc1-vm1"]
+    named_ports = [
+      { name = "http", port = 80 },
+      { name = "revo-ai", port = 8000 },
     ]
   }
 }
@@ -406,6 +420,7 @@ gcs_buckets = {
     name               = "adwave-uat"
     location           = "asia-southeast1"  # Region (单可用区)
     storage_class      = "STANDARD"
+    prevention_rule = "enforced"
     versioning_enabled = false
     labels = {
       environment = "uat"

@@ -7,7 +7,7 @@ resource "google_compute_global_address" "lb_external_ip" {
   address_type = "EXTERNAL"
 }
 
-# 2. 创建 Health Check（探测 TCP 8080 端口）
+# 2. 创建 Health Check（探测 TCP 80 端口）
 resource "google_compute_health_check" "backend_health_check" {
   name                = var.lb_health_check_name
   check_interval_sec  = 5
@@ -16,7 +16,7 @@ resource "google_compute_health_check" "backend_health_check" {
   unhealthy_threshold = 2
 
   tcp_health_check {
-    port = 8080
+    port = 80
   }
 }
 
@@ -214,13 +214,13 @@ output "load_balancer_info" {
   value = {
     name        = var.lb_name
     external_ip = google_compute_global_address.lb_external_ip.address
-    # 8080 端口服务
-    forwarding_rule_8080 = google_compute_global_forwarding_rule.lb_forwarding_rule.name
-    backend_service_8080 = google_compute_backend_service.global_backend.name
-    health_check_8080    = google_compute_health_check.backend_health_check.name
-    url_map_8080         = google_compute_url_map.lb_url_map.name
-    http_proxy_8080      = google_compute_target_http_proxy.lb_http_proxy.name
-    access_url_8080      = "http://${google_compute_global_address.lb_external_ip.address}:80"
+    # 80 端口服务
+    forwarding_rule_80 = google_compute_global_forwarding_rule.lb_forwarding_rule.name
+    backend_service_80 = google_compute_backend_service.global_backend.name
+    health_check_80    = google_compute_health_check.backend_health_check.name
+    url_map_80         = google_compute_url_map.lb_url_map.name
+    http_proxy_80      = google_compute_target_http_proxy.lb_http_proxy.name
+    access_url_80      = "http://${google_compute_global_address.lb_external_ip.address}:80"
     # 8000 端口服务
     forwarding_rule_8000 = google_compute_global_forwarding_rule.lb_forwarding_rule_8000.name
     backend_service_8000 = google_compute_backend_service.global_backend_8000.name

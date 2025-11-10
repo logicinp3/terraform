@@ -191,6 +191,7 @@ variable "gcs_buckets" {
     name               = string
     location           = string # Region name (e.g., "asia-southeast1")
     storage_class      = optional(string, "STANDARD")
+    prevention_rule    = optional(string, "enforced")
     versioning_enabled = optional(bool, false)
     labels             = optional(map(string), {})
     lifecycle_rules = optional(list(object({
