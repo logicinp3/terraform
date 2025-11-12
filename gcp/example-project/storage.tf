@@ -9,7 +9,7 @@ resource "google_storage_bucket" "buckets" {
   storage_class = each.value.storage_class
 
   # Public access prevention: enforced / inherited / null
-  public_access_prevention = "enforced"
+  public_access_prevention = each.value.prevention_rule
 
   # Access control: Uniform
   uniform_bucket_level_access = true

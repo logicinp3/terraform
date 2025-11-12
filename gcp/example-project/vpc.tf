@@ -12,6 +12,15 @@ data "google_compute_subnetwork" "subnets" {
   region   = each.value.region
 }
 
+## 创建 VPC subnets
+#resource "google_compute_subnetwork" "subnets" {
+#  for_each = var.subnet_configs
+#  name          = each.key
+#  region        = each.value.region
+#  ip_cidr_range = each.value.primary_ipv4_range
+#  network       = var.current_vpc_name
+#}
+
 # 创建防火墙规则
 resource "google_compute_firewall" "firewall_rules" {
   for_each = var.firewall_rules
